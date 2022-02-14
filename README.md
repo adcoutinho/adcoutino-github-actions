@@ -4,7 +4,9 @@
 The purpose of this repo is to archive Github Actions workflows examples:
 
 *terraform-apply.yml* - Simple ``` terraform apply``` workflow for AWS triggered when a push to main happens with output inside PR;
+
 *terraform-destroy.yml* - Simple ``` terraform destroy``` workflow for AWS triggered when a push to main happens with output inside PR;
+
 *terraform-destroy.yml* - Simple ``` terraform plan``` workflow for AWS triggered when a push to main happens with output inside PR;
 
 
