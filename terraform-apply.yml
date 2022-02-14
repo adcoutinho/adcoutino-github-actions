@@ -1,0 +1,103 @@
+
+name: Terraform Apply
+
+on:
+  # Trigger the workflow on push or pull request,
+  # but only for the main branch
+  push:
+    branches:
+      - main
+      
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    strategy:
+      fail-fast: false
+      matrix:
+        environment:
+          - name: xxxxxxxxx
+            aws_account_id: xxxxxxxxx
+            aws_region: xxxxxxxxx
+            terraform_version: 1.0.1
+    env:
+      AWS_ACCOUNT_ID: ${{ matrix.environment.aws_account_id }}
+      AWS_REGION: xxxxxxxxx
+      ENVIRONMENT: ${{ matrix.environment.name }}
+      TF_WORKDIR: xxxxxxxxx
+    defaults:
+      run:
+        working-directory: ${{ env.TF_WORKDIR }}
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-node@v2 # Required by the setup-terraform ction
+      with:
+        node-version: '14'
+
+    - uses: hashicorp/setup-terraform@v1
+      with:
+        terraform_version: ${{ matrix.environment.terraform_version }}
+
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AAWS_ACCESS_KEY }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+#        role-to-assume: arn:aws:iam::${{ matrix.environment.aws_account_id }}:user/terraform-ci
+        aws-region: ${{ matrix.environment.aws_region }}
+#        role-duration-seconds: 3000
+#        role-skip-session-tagging: true
+
+    - name: Create AWS Credentials file
+      run: |
+        mkdir ${HOME}/.aws && touch ${HOME}/.aws/credentials
+        echo -e "[${ENVIRONMENT}]\naws_access_key_id=${AWS_ACCESS_KEY_ID}\naws_secret_access_key=${AWS_SECRET_ACCESS_KEY}\n" > ${HOME}/.aws/credentials
+        cat ${HOME}/.aws/credentials
+    - name: Terraform fmt
+      if: github.ref != 'refs/heads/main'
+      id: fmt
+      run: terraform fmt -check
+      continue-on-error: true
+
+    - name: Terraform Init
+      id: init
+      run: terraform init
+
+    - name: Terraform Validate
+      if: github.ref != 'refs/heads/main'
+      id: validate
+      run: terraform validate -no-color
+
+    - name: Terraform Plan
+      if: github.ref != 'refs/heads/main'
+      id: plan
+      run: terraform plan -no-color
+      continue-on-error: true
+
+    - uses: actions/github-script@0.9.0
+      if: github.event_name == 'pull_request'
+      env:
+        PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          const output = `#### Terraform Format and Style 🖌\`${{ steps.fmt.outcome }}\`
+          #### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
+          #### Terraform Validation 🤖\`${{ steps.validate.outputs.stdout }}\`
+          #### Terraform Plan 📖\`${{ steps.plan.outcome }}\`
+          <details><summary>Show Plan</summary>
+          \`\`\`\n
+          ${process.env.PLAN}
+          \`\`\`
+          </details>
+          *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Working Directory: \`${{ env.TF_WORKDIR }}\`, Workflow: \`${{ github.workflow }}\`*`;
+          github.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: output
+          })
+    - name: Terraform Apply
+      if: github.ref == 'refs/heads/main'
+      id: apply
+      run: terraform apply -auto-approve -no-color

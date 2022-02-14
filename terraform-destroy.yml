@@ -1,0 +1,62 @@
+
+name: Terraform Destroy
+
+on:
+  # Trigger the workflow on push,
+  # but only for the destroy branch
+  push:
+    branches:
+      - destroy
+      
+jobs:
+  terraform-destroy:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/destroy' && github.event_name == 'push'
+    strategy:
+      fail-fast: false
+      matrix:
+        environment:
+          - name: xxxxxxxxx
+            aws_account_id: xxxxxxxxx
+            aws_region: xxxxxxxxx
+            terraform_version: 1.0.1
+    env:
+      AWS_ACCOUNT_ID: ${{ matrix.environment.aws_account_id }}
+      AWS_REGION: xxxxxxxxx
+      ENVIRONMENT: ${{ matrix.environment.name }}
+      TF_WORKDIR: xxxxxxxxx
+    defaults:
+      run:
+        working-directory: ${{ env.TF_WORKDIR }}
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-node@v2 # Required by the setup-terraform action
+      with:
+        node-version: '14'
+
+    - uses: hashicorp/setup-terraform@v1
+      with:
+        terraform_version: ${{ matrix.environment.terraform_version }}
+
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+#        role-to-assume: arn:aws:iam::${{ matrix.environment.aws_account_id }}:role/terraform-ci-${{ matrix.environment.aws_account_id }}-${{ matrix.environment.aws_region }}
+        aws-region: ${{ matrix.environment.aws_region }}
+#        role-duration-seconds: 3000
+#        role-skip-session-tagging: true
+
+    - name: Create AWS Credentials file
+      run: |
+        mkdir ${HOME}/.aws && touch ${HOME}/.aws/credentials
+        echo -e "[adclab-${ENVIRONMENT}]\naws_access_key_id=${AWS_ACCESS_KEY_ID}\naws_secret_access_key=${AWS_SECRET_ACCESS_KEY}\n" > ${HOME}/.aws/credentials
+        cat ${HOME}/.aws/credentials
+    - name: Terraform Init
+      id: init
+      run: terraform init
+
+    - name: Terraform Destroy
+      id: destroy
+      run: terraform destroy -auto-approve -no-color
