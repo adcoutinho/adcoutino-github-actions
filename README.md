@@ -10,6 +10,7 @@ The purpose of this repo is to archive Github Actions workflows examples:
 *terraform-destroy.yml* - Simple ``` terraform plan``` workflow for AWS triggered when a push to main happens with output inside PR;
 
 
+
 In order to use those actions you should:
 
 1 - Create ```.github\workflows folder``` inside the root of repo;
