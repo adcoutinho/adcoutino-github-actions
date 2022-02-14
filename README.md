@@ -1,9 +1,16 @@
 # adcoutino-github-actions
-Repository to save github-actions examples
+
+
+The purpose of this repo is to archive Github Actions workflows examples:
+
+*terraform-apply.yml* - Simple ``` terraform apply``` workflow for AWS triggered when a push to main happens with output inside PR;
+*terraform-destroy.yml* - Simple ``` terraform destroy``` workflow for AWS triggered when a push to main happens with output inside PR;
+*terraform-destroy.yml* - Simple ``` terraform plan``` workflow for AWS triggered when a push to main happens with output inside PR;
+
 
 In order to use those actions you should:
 
-1 - Create .github\workflows folder inside the root of repo;
+1 - Create ```.github\workflows folder``` inside the root of repo;
 
 2 - Change environment parameters directly to each file or create Environments and Secrets in Github Settings to reference here:
 ```
@@ -28,7 +35,7 @@ env:
 *TF_WORKDIR* must be the place where Terraform files resides.
 
 
-4 - For AWS Credentials it must be Env Secrets for security reason in this case AWS_ACCESS_KEY and AWS_SECRET_ACCESS_KEY:
+4 - For AWS Credentials it must be Env Secrets for security reason in this case **AWS_ACCESS_KEY** and **AWS_SECRET_ACCESS_KEY**:
 ```
 - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v1
